@@ -17,7 +17,7 @@ export default function Footer() {
           </div>
           <div className="md:col-span-3">
             <div className="text-xs font-semibold text-white/80">联系</div>
-            <div className="mt-2 text-sm text-white/70">邮箱：hello@example.com</div>
+            <div className="mt-2 text-sm text-white/70">邮箱：skip_xie@hotmail.com</div>
             <div className="mt-1 text-sm text-white/70">工作时间：工作日 10:00–18:00</div>
           </div>
         </div>
