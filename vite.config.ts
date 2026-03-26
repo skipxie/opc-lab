@@ -7,6 +7,7 @@ import { traeBadgePlugin } from 'vite-plugin-trae-solo-badge';
 export default defineConfig({
   build: {
     sourcemap: 'hidden',
+    emptyOutDir: false,
   },
   test: {
     environment: 'jsdom',
@@ -32,4 +33,4 @@ export default defineConfig({
     }), 
     tsconfigPaths()
   ],
-})
+} as any)
