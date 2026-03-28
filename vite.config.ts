@@ -9,6 +9,14 @@ export default defineConfig({
     sourcemap: 'hidden',
     emptyOutDir: false,
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,
@@ -30,7 +38,7 @@ export default defineConfig({
       clickUrl: 'https://www.trae.ai/solo?showJoin=1',
       autoTheme: true,
       autoThemeTarget: '#root'
-    }), 
+    }),
     tsconfigPaths()
   ],
 } as any)
