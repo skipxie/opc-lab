@@ -24,11 +24,11 @@
 ### 2. 数据表初始化
 数据库表会在首次启动时自动创建（`synchronize: true`）。
 
-默认管理员账号：
+**安全提示：** 默认管理员账号仅用于首次部署，部署后应立即修改密码或删除！
+
+默认管理员账号（仅开发环境）：
 - 邮箱：`admin@opc-lab.com`
 - 密码：`Admin123!`
-
-**建议部署后立即修改密码！**
 
 ---
 
@@ -48,27 +48,84 @@ npm install --registry=https://registry.npmmirror.com
 
 ### 3. 配置环境变量
 
-创建 `server/.env` 文件：
+**重要提示：** 敏感信息（数据库密码、密钥等）不应提交到代码仓库，需要在服务器上单独配置。
+
+**方式 A：使用 .env 文件（简单）**
+
+在服务器上创建 `server/.env` 文件（此文件已被 `.gitignore` 忽略，不会提交）：
 ```bash
 # 环境
 NODE_ENV=production
 PORT=3000
 
-# 数据库
-DB_HOST=8.163.33.195
-DB_PORT=3806
-DB_USERNAME=opclab_X14.
-DB_PASSWORD=bBJHLwL8exXtz2kF
-DB_DATABASE=opc
+# 数据库（在服务器上配置实际值）
+DB_HOST=你的数据库主机
+DB_PORT=你的数据库端口
+DB_USERNAME=你的数据库用户名
+DB_PASSWORD=你的数据库密码
+DB_DATABASE=你的数据库名
 
-# Session 配置（生产环境请修改为随机字符串）
-SESSION_SECRET=your-secret-key-change-in-production
+# Session 配置（生成随机字符串）
+SESSION_SECRET=运行：openssl rand -hex 32
 
-# JWT 配置（生产环境请修改为随机字符串）
-JWT_SECRET=your-jwt-secret-change-in-production
+# JWT 配置（生成随机字符串）
+JWT_SECRET=运行：openssl rand -hex 32
 
 # 前端 URL
 FRONTEND_URL=https://www.opc-lab.com
+```
+
+**方式 B：使用系统环境变量（推荐）**
+
+在 `/etc/environment` 或 `~/.bashrc` 中添加：
+```bash
+export NODE_ENV=production
+export PORT=3000
+export DB_HOST=你的数据库主机
+export DB_PORT=你的数据库端口
+export DB_USERNAME=你的数据库用户名
+export DB_PASSWORD=你的数据库密码
+export DB_DATABASE=你的数据库名
+export SESSION_SECRET=随机字符串
+export JWT_SECRET=随机字符串
+export FRONTEND_URL=https://www.opc-lab.com
+```
+
+然后执行 `source ~/.bashrc` 使其生效。
+
+**方式 C：使用 PM2 的 ecosystem 配置（最佳实践）**
+
+创建 `server/ecosystem.config.js`：
+```javascript
+module.exports = {
+  apps: [{
+    name: 'opc-api',
+    script: './dist/main.js',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 3000,
+      DB_HOST: process.env.DB_HOST,
+      DB_PORT: process.env.DB_PORT,
+      DB_USERNAME: process.env.DB_USERNAME,
+      DB_PASSWORD: process.env.DB_PASSWORD,
+      DB_DATABASE: process.env.DB_DATABASE,
+      SESSION_SECRET: process.env.SESSION_SECRET,
+      JWT_SECRET: process.env.JWT_SECRET,
+      FRONTEND_URL: process.env.FRONTEND_URL,
+    },
+  }],
+};
+```
+
+然后在服务器上设置环境变量：
+```bash
+# 设置环境变量
+export SESSION_SECRET=$(openssl rand -hex 32)
+export JWT_SECRET=$(openssl rand -hex 32)
+# 其他变量...
+
+# 使用 PM2 启动
+pm2 start ecosystem.config.js
 ```
 
 **生成随机密钥：**
@@ -79,6 +136,11 @@ openssl rand -hex 32
 # 或使用 Node.js
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
+
+**安全提示：**
+- `.env` 文件已被添加到 `.gitignore`，不会被提交到代码仓库
+- 不要将包含真实密码的 `.env` 文件发送给他人
+- 生产环境建议使用系统环境变量或密钥管理服务
 
 ### 4. 编译 TypeScript
 ```bash
@@ -239,7 +301,7 @@ pm2 logs opc-api
 netstat -tlnp | grep 3000
 
 # 检查数据库连接
-mysql -h 8.163.33.195 -P 3806 -u opclab_X14. -p
+mysql -h 你的数据库主机 -P 你的数据库端口 -u 你的用户名 -p
 ```
 
 ### 前端页面空白
