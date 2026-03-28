@@ -34,3 +34,46 @@ a {
 #root {
   min-height: 100vh;
 }
+
+/* Quill 编辑器样式修复 */
+.ql-toolbar.ql-snow {
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  border-color: #e2e8f0 !important;
+  padding: 6px 8px !important;
+
+  /* 强制单行显示 */
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 2px !important;
+  height: auto !important;
+  min-height: auto !important;
+}
+
+.ql-toolbar.ql-snow .ql-formats {
+  margin-right: 2px !important;
+  margin-bottom: 0 !important;
+  display: inline-flex !important;
+  flex-shrink: 0 !important;
+}
+
+.ql-toolbar.ql-snow button,
+.ql-toolbar.ql-snow .ql-picker-label,
+.ql-toolbar.ql-snow .ql-picker-item {
+  padding: 2px 4px !important;
+  width: auto !important;
+  min-width: auto !important;
+  height: auto !important;
+}
+
+.ql-toolbar.ql-snow button svg,
+.ql-toolbar.ql-snow .ql-picker-label svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+/* 移除 Quill 默认的工具栏高度限制 */
+.ql-toolbar.ql-snow .ql-stroke {
+  stroke-width: 2 !important;
+}

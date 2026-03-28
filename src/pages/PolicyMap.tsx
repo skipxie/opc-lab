@@ -10,6 +10,25 @@ import { Card } from "@/components/ui/Card";
 import { usePolicyMapStore } from "@/stores/usePolicyMapStore";
 import { setPageMeta } from "@/utils/meta";
 import { buildPolicyMapSearch, parsePolicyMapSearch } from "@/utils/policyMapUrl";
+import { fetchPolicies } from "@/api";
+
+interface Policy {
+  id: string;
+  title: string;
+  regionName: string;
+  policyType: string;
+  targetAudience?: string;
+  summary?: string;
+  requirements?: string;
+  materials?: string;
+  officialUrl?: string;
+  deadline?: string;
+  publishedOn?: string;
+  sourceName?: string;
+  updatedAt: string;
+  isFeatured: boolean;
+  tags?: string[];
+}
 
 export default function PolicyMap() {
   setPageMeta({
@@ -18,17 +37,26 @@ export default function PolicyMap() {
   });
 
   const {
-    policies,
     filters,
     setFilters,
-    visiblePolicies,
     selectedPolicyId,
     selectPolicy,
     favorites,
     clearFocusOnce,
   } = usePolicyMapStore();
 
+  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [loading, setLoading] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  // 加载政策数据
+  useEffect(() => {
+    setLoading(true);
+    fetchPolicies(filters)
+      .then((res) => setPolicies(res.data || []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [filters]);
 
   useEffect(() => {
     const parsed = parsePolicyMapSearch(window.location.search);
@@ -129,7 +157,13 @@ export default function PolicyMap() {
         <div className="md:col-span-8">
           <div className="md:h-[72vh]">
             <div className="h-full overflow-hidden rounded-2xl border border-[color:var(--border)] bg-white">
-              <PolicyList policies={visiblePolicies} selectedId={selectedPolicyId} onSelect={selectPolicy} />
+              {loading ? (
+                <div className="flex h-full items-center justify-center text-sm text-slate-500">
+                  加载中...
+                </div>
+              ) : (
+                <PolicyList policies={policies} selectedId={selectedPolicyId} onSelect={selectPolicy} />
+              )}
             </div>
           </div>
         </div>

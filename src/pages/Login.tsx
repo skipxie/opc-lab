@@ -33,7 +33,10 @@ export default function Login() {
         throw new Error(data.message || '登录失败');
       }
 
-      // 登录成功，跳转到首页
+      // 登录成功，保存用户信息到 localStorage
+      localStorage.setItem('opc_current_user', JSON.stringify(data.data.user));
+
+      // 跳转到首页
       navigate('/');
     } catch (err: any) {
       setError(err.message || '登录失败，请重试');

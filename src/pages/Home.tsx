@@ -1,20 +1,36 @@
 import { ArrowRight, BadgeCheck, MapPinned, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 import Container from "@/components/Container";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { setPageMeta } from "@/utils/meta";
-import { samplePolicies } from "@/data/samplePolicies";
+import { fetchFeaturedPolicies } from "@/api";
 import { formatDateYmd } from "@/utils/date";
+
+interface Policy {
+  id: string;
+  title: string;
+  regionName: string;
+  policyType: string;
+  summary: string;
+  deadline?: string;
+}
 
 export default function Home() {
   setPageMeta({
-    title: "光未在线OPC｜AI + 政策列表，让一人公司跑起来",
+    title: "光未在线 OPC｜AI + 政策列表，让一人公司跑起来",
     description: "用 AI 把目标拆成行动清单；用政策列表找到你能用的资源；加入社区获得同伴与复盘。",
   });
 
-  const featured = samplePolicies.filter((p) => p.isFeatured).slice(0, 6);
+  const [featured, setFeatured] = useState<Policy[]>([]);
+
+  useEffect(() => {
+    fetchFeaturedPolicies(6)
+      .then((res) => setFeatured(res.data))
+      .catch(console.error);
+  }, []);
 
   return (
     <div>
@@ -24,7 +40,7 @@ export default function Home() {
             <div className="lg:col-span-7">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/90">
                 <Sparkles className="h-3.5 w-3.5" />
-                AI 驱动 · 光未在线OPC系统
+                AI 驱动 · 光未在线 OPC 系统
               </div>
               <h1 className="mt-5 text-4xl font-semibold leading-tight tracking-tight md:text-5xl">
                 从目标到行动清单，
@@ -83,7 +99,7 @@ export default function Home() {
               <div className="text-lg font-semibold">AI 帮你行动</div>
             </div>
             <div className="mt-3 text-sm leading-relaxed text-slate-600">
-              不是“懂更多”，而是把目标拆成一周能做完的任务，保证持续推进。
+              不是"懂更多"，而是把目标拆成一周能做完的任务，保证持续推进。
             </div>
           </Card>
           <Card className="p-6">
@@ -105,7 +121,7 @@ export default function Home() {
               <div className="text-lg font-semibold">社区节奏</div>
             </div>
             <div className="mt-3 text-sm leading-relaxed text-slate-600">
-              同伴互助 + 模板 + 复盘机制，让你的行动变成“系统”，而不是“冲动”。
+              同伴互助 + 模板 + 复盘机制，让你的行动变成"系统"，而不是"冲动"。
             </div>
           </Card>
         </div>
@@ -149,6 +165,11 @@ export default function Home() {
                 </div>
               </Card>
             ))}
+            {featured.length === 0 && (
+              <div className="col-span-full py-8 text-center text-sm text-slate-500">
+                暂无推荐政策
+              </div>
+            )}
           </div>
         </Container>
       </div>
@@ -159,7 +180,7 @@ export default function Home() {
             <div className="bg-[color:var(--bg)] px-6 py-10 text-white md:col-span-7">
               <div className="text-2xl font-semibold tracking-tight">加入社区，跟着节奏走</div>
               <div className="mt-3 max-w-xl text-sm leading-relaxed text-white/80">
-                每周政策雷达 + AI 行动模板 + 复盘机制：把“想做”变成“能做完”。提交后我会在 24 小时内联系你确认。
+                每周政策雷达 + AI 行动模板 + 复盘机制：把"想做"变成"能做完"。提交后我会在 24 小时内联系你确认。
               </div>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Button asChild variant="primary">

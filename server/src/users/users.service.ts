@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like, FindOptionsWhere } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User, UserFavorite } from './user.entity';
 
@@ -81,6 +81,20 @@ export class UsersService {
 
   async getFavorites(userId: number): Promise<UserFavorite[]> {
     return this.favoritesRepository.find({ where: { userId } });
+  }
+
+  async findAll(options: {
+    where?: FindOptionsWhere<User>;
+    page?: number;
+    limit?: number;
+  }): Promise<[User[], number]> {
+    const { where, page = 1, limit = 20 } = options;
+    return this.usersRepository.findAndCount({
+      where,
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
   }
 }
 

@@ -29,6 +29,10 @@ export default function Footer() {
             </a>
           </div>
         </div>
+        <div className="mt-4 text-center text-xs text-white/40">
+          本网站由 <a href="https://www.trae.ai/" target="_blank" rel="noreferrer" className="hover:text-white/60 transition-colors">Trae</a>、
+          <a href="https://claude.ai/code" target="_blank" rel="noreferrer" className="hover:text-white/60 transition-colors ml-1">Claude Code</a> 创作完成
+        </div>
       </Container>
     </div>
   );

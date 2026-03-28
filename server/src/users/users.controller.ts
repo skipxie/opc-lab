@@ -6,6 +6,7 @@ import {
   Param,
   UseGuards,
   CanActivate,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 
@@ -16,9 +17,28 @@ class AuthGuard implements CanActivate {
   }
 }
 
-@Controller('api/users')
+@Controller('api')
 export class UsersController {
   constructor(private usersService: UsersService) {}
+
+  // 管理员接口 - 获取用户列表
+  @Get('admin/users')
+  async getAllUsers(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+    @Query('q') q?: string,
+  ) {
+    const where: any = {};
+    if (q) {
+      where.email = `%%${q}%%`;
+    }
+    const [data, total] = await this.usersService.findAll({
+      where,
+      page: Number(page),
+      limit: Number(limit),
+    });
+    return { data, total };
+  }
 
   @Get('me')
   async getMe(@Request() req) {
