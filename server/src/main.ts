@@ -1,7 +1,7 @@
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
-import session from 'express-session';
+const session = require('express-session');
 import { AppModule } from './app.module';
 
 async function bootstrap() {
