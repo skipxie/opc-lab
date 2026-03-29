@@ -145,32 +145,37 @@ export class PolicyCrawlerService {
   }
 
   /**
-   * 从搜索引擎搜索政策
+   * 从百度搜索获取政策
    */
   private async searchFromSearchEngine(query: string): Promise<PolicySearchResult[]> {
     const results: PolicySearchResult[] = [];
 
-    // 使用 Bing 搜索 API 模拟（实际使用时需要替换为真实的 API）
-    // 这里使用一个简单的 HTML 解析方式来获取搜索结果
-    const searchUrl = `https://www.baidu.com/s?wd=${encodeURIComponent(query)}`;
+    // 使用百度搜索
+    const searchUrl = `https://www.baidu.com/s?wd=${encodeURIComponent(query)}&rn=10`;
 
     try {
       const { data } = await axios.get(searchUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+          'Accept-Language': 'zh-CN,zh;q=0.9',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         },
-        timeout: 10000,
+        timeout: 15000,
       });
 
       const $ = cheerio.load(data);
 
-      // 解析 Bing 搜索结果
-      $('#b_results > li.b_algo').each((_, element) => {
-        const title = $(element).find('h2 a').text().trim();
-        const url = $(element).find('h2 a').attr('href') || '';
-        const summary = $(element).find('.b_caption p').first().text().trim();
-        const source = $(element).find('.b_attribution').text().trim();
+      // 解析百度搜索结果，跳过广告
+      $('#content_left .c-container').each((_, element) => {
+        // 跳过广告
+        if ($(element).hasClass('c-container-ads') || $(element).find('.c-container-label').text().includes('广告')) {
+          return;
+        }
+
+        const title = $(element).find('h3 a, .t a').first().text().trim();
+        const url = $(element).find('h3 a, .t a').first().attr('href') || '';
+        const summary = $(element).find('.c-abstract, .c-span-last').first().text().trim();
+        const source = $(element).find('.c-showurl, .c-color-gray').first().text().trim();
 
         // 提取地区信息
         const region = this.extractRegion(title + ' ' + summary);
@@ -186,7 +191,7 @@ export class PolicyCrawlerService {
         }
       });
     } catch (error) {
-      this.logger.warn(`搜索引擎解析失败：${error.message}`);
+      this.logger.warn(`百度搜索解析失败：${error.message}`);
     }
 
     // 如果没有获取到结果，使用预设的政府网站数据
