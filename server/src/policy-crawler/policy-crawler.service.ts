@@ -165,6 +165,9 @@ export class PolicyCrawlerService {
 
       const $ = cheerio.load(data);
 
+      this.logger.log(`百度搜索 HTML 长度：${data.length}`);
+      this.logger.log(`搜索关键词：${query}`);
+
       // 解析百度搜索结果，跳过广告
       $('#content_left .c-container').each((_, element) => {
         // 跳过广告
@@ -176,6 +179,8 @@ export class PolicyCrawlerService {
         const url = $(element).find('h3 a, .t a').first().attr('href') || '';
         const summary = $(element).find('.c-abstract, .c-span-last').first().text().trim();
         const source = $(element).find('.c-showurl, .c-color-gray').first().text().trim();
+
+        this.logger.log(`解析结果：title=${title.substring(0, 20)}, url=${url}`);
 
         // 提取地区信息
         const region = this.extractRegion(title + ' ' + summary);
@@ -190,90 +195,13 @@ export class PolicyCrawlerService {
           });
         }
       });
-    } catch (error) {
-      this.logger.warn(`百度搜索解析失败：${error.message}`);
-    }
 
-    // 如果没有获取到结果，使用预设的政府网站数据
-    if (results.length === 0) {
-      this.logger.log('使用预设政策数据源');
-      return this.getPrescribedPolicySources(query);
+      this.logger.log(`成功解析 ${results.length} 条结果`);
+    } catch (error) {
+      this.logger.error(`百度搜索解析失败：${error.message}`, error.stack);
     }
 
     return results.slice(0, 10); // 限制每个查询最多 10 条
-  }
-
-  /**
-   * 预设的政策数据源（当搜索引擎不可用时使用）
-   */
-  private getPrescribedPolicySources(query: string): PolicySearchResult[] {
-    const sources: Record<string, PolicySearchResult[]> = {
-      'OPC': [
-        {
-          title: '北京市关于支持人工智能 OPC 企业发展的若干措施',
-          url: 'https://kw.beijing.gov.cn/art/2025/1/15/art_1638_556789.html',
-          summary: '支持人工智能一人公司发展，提供算力券、场地补贴等政策支持',
-          source: '北京市科委',
-          region: '北京',
-        },
-        {
-          title: '上海市促进 AI 一人公司创新发展行动计划',
-          url: 'https://stcsm.sh.gov.cn/nw2/nw2314/nw32419/nw23222/nw42427/',
-          summary: '推动人工智能一人公司发展，提供产品研发资助和场景应用对接',
-          source: '上海市经信委',
-          region: '上海',
-        },
-        {
-          title: '广东省 OPC 创业补贴政策申报指南',
-          url: 'https://dgi.gd.gov.cn/attachment/0/560/560799/4304326.pdf',
-          summary: '人工智能领域一人公司可申请最高 10 万元创业补贴',
-          source: '广东省人社厅',
-          region: '广东',
-        },
-        {
-          title: '深圳市超级个体创业扶持办法',
-          url: 'http://hrss.sz.gov.cn/zwgk/zfxxgk/zfwj/content/post_10294567.html',
-          summary: '为 AI 领域一人公司提供贷款贴息、场地支持等政策',
-          source: '深圳市人社局',
-          region: '深圳',
-        },
-        {
-          title: '浙江省数据资源开放支持 OPC 创作者计划',
-          url: 'https://data.zjzwfw.gov.cn/jdop_front/channeldetail.do?ch_id=7',
-          summary: '向 OPC 创作者开放公共数据资源，提供免费 API 接口',
-          source: '浙江省大数据局',
-          region: '浙江',
-        },
-      ],
-      '补贴': [
-        {
-          title: '2025 年小微企业创业补贴申报通知',
-          url: 'https://www.gov.cn/zhengce/content/2025/01/15/content_5555555.html',
-          summary: '符合条件的小微企业可申请最高 5 万元的一次性创业补贴',
-          source: '人社部',
-          region: '全国',
-        },
-      ],
-      '算力券': [
-        {
-          title: '北京市算力券申领指南 2025',
-          url: 'https://kw.beijing.gov.cn/art/2025/1/15/art_1638_556790.html',
-          summary: '为 AI 企业提供算力券支持，每年最高 5 万元',
-          source: '北京市科委',
-          region: '北京',
-        },
-      ],
-    };
-
-    // 根据查询关键词匹配
-    for (const [key, policyList] of Object.entries(sources)) {
-      if (query.includes(key)) {
-        return policyList;
-      }
-    }
-
-    // 默认返回 OPC 相关政策
-    return sources['OPC'] || [];
   }
 
   /**
