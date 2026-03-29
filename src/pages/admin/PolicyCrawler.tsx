@@ -19,12 +19,12 @@ export default function PolicyCrawler() {
     setLoading(true);
     setResult(null);
     try {
-      const data = await triggerPolicyCrawler();
+      const data = await triggerPolicyCrawler() as any;
       setResult(data);
-      if (data.success) {
-        toast(`成功获取 ${data.count} 条新政策`);
+      if (data?.success) {
+        toast(`成功获取 ${data?.count} 条新政策`);
       } else {
-        toast("爬取失败：" + data.message, "error");
+        toast("爬取失败：" + (data?.message || "未知错误"));
       }
     } catch (error) {
       toast("爬取失败：" + error);
@@ -43,12 +43,12 @@ export default function PolicyCrawler() {
     setLoading(true);
     setResult(null);
     try {
-      const data = await triggerPolicyCrawler(keyword);
+      const data = await triggerPolicyCrawler(keyword) as any;
       setResult(data);
-      if (data.success) {
-        toast(`成功获取 ${data.count} 条新政策`);
+      if (data?.success) {
+        toast(`成功获取 ${data?.count} 条新政策`);
       } else {
-        toast("爬取失败：" + data.message, "error");
+        toast("爬取失败：" + (data?.message || "未知错误"));
       }
     } catch (error) {
       toast("爬取失败：" + error);

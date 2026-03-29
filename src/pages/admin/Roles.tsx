@@ -36,8 +36,8 @@ export default function AdminRoles() {
 
   const loadRoles = async () => {
     try {
-      const res = await fetchRoles();
-      setRoles(res);
+      const res = await fetchRoles() as any;
+      setRoles(res as Role[]);
     } catch (error) {
       toast("加载角色列表失败");
     }
@@ -45,8 +45,8 @@ export default function AdminRoles() {
 
   const loadPermissions = async () => {
     try {
-      const res = await fetchPermissions();
-      setPermissions(res);
+      const res = await fetchPermissions() as any;
+      setPermissions(res as Permission[]);
     } catch (error) {
       toast("加载权限列表失败");
     }
@@ -134,19 +134,17 @@ export default function AdminRoles() {
             <div className="mt-4 flex items-center gap-2">
               <Button
                 variant="secondary"
-                size="sm"
                 onClick={() => handleOpenPermissions(role)}
               >
                 <Settings className="mr-1 h-3 w-3" />
                 权限
               </Button>
-              <Button variant="secondary" size="sm">
+              <Button variant="secondary">
                 <Pencil className="mr-1 h-3 w-3" />
                 编辑
               </Button>
               <Button
                 variant="secondary"
-                size="sm"
                 onClick={() => handleDelete(role.id)}
                 className="text-red-600 hover:text-red-700"
               >
@@ -163,16 +161,6 @@ export default function AdminRoles() {
         open={permissionDrawerOpen}
         onClose={() => setPermissionDrawerOpen(false)}
         title={`分配权限 - ${selectedRole?.name}`}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setPermissionDrawerOpen(false)}>
-              取消
-            </Button>
-            <Button variant="primary" onClick={handleSavePermissions}>
-              保存
-            </Button>
-          </div>
-        }
       >
         <div className="space-y-4">
           {Object.entries(permissionsByModule).map(([module, mods]) => (
@@ -201,6 +189,14 @@ export default function AdminRoles() {
               </div>
             </div>
           ))}
+        </div>
+        <div className="mt-6 flex justify-end gap-2">
+          <Button variant="secondary" onClick={() => setPermissionDrawerOpen(false)}>
+            取消
+          </Button>
+          <Button variant="primary" onClick={handleSavePermissions}>
+            保存
+          </Button>
         </div>
       </Drawer>
     </div>

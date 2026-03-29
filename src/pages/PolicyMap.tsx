@@ -11,24 +11,7 @@ import { usePolicyMapStore } from "@/stores/usePolicyMapStore";
 import { setPageMeta } from "@/utils/meta";
 import { buildPolicyMapSearch, parsePolicyMapSearch } from "@/utils/policyMapUrl";
 import { fetchPolicies } from "@/api";
-
-interface Policy {
-  id: string;
-  title: string;
-  regionName: string;
-  policyType: string;
-  targetAudience?: string;
-  summary?: string;
-  requirements?: string;
-  materials?: string;
-  officialUrl?: string;
-  deadline?: string;
-  publishedOn?: string;
-  sourceName?: string;
-  updatedAt: string;
-  isFeatured: boolean;
-  tags?: string[];
-}
+import { Policy } from "@/types/policy";
 
 export default function PolicyMap() {
   setPageMeta({
@@ -53,7 +36,7 @@ export default function PolicyMap() {
   useEffect(() => {
     setLoading(true);
     fetchPolicies(filters)
-      .then((res) => setPolicies(res.data || []))
+      .then((res: any) => setPolicies(res.data || []))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [filters]);
