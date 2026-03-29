@@ -13,9 +13,22 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // 托管前端静态文件（生产环境）
+  app.useStaticAssets(join(process.cwd(), '..', 'dist'), {
+    prefix: '/',
+  });
+
   // 托管静态文件（生成的静态页面）
   app.useStaticAssets(join(process.cwd(), 'dist', 'static'), {
     prefix: '/static/',
+  });
+
+  // SPA 路由回退
+  app.use((req: any, res: any, next: () => void) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/static')) {
+      return next();
+    }
+    res.sendFile(join(process.cwd(), '..', 'dist', 'index.html'));
   });
 
   app.use(
