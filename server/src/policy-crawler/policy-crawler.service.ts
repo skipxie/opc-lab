@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { Cron } from '@nestjs/schedule';
@@ -41,7 +42,7 @@ interface ContentClassification {
 }
 
 @Injectable()
-export class PolicyCrawlerService {
+export class PolicyCrawlerService implements OnModuleInit {
   private readonly logger = new Logger(PolicyCrawlerService.name);
   private readonly bochaApiKey: string;
   private readonly bochaApiUrl: string;
@@ -51,6 +52,7 @@ export class PolicyCrawlerService {
   constructor(
     private dataSource: DataSource,
     private configService: ConfigService,
+    @InjectRepository(CrawlerConfig)
     private crawlerConfigRepository: Repository<CrawlerConfig>
   ) {
     this.bochaApiKey = this.configService.get<string>('BOCHA_API_KEY') || '';
