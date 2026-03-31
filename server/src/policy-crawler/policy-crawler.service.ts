@@ -3,6 +3,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { Cron } from '@nestjs/schedule';
 import { DataSource } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import { Policy } from '../policies/policy.entity';
 import { Article, ArticleTag, ArticleCategory } from '../articles/entities/article.entity';
 
@@ -41,6 +42,45 @@ interface ContentClassification {
 @Injectable()
 export class PolicyCrawlerService {
   private readonly logger = new Logger(PolicyCrawlerService.name);
+  private readonly bochaApiKey: string;
+  private readonly bochaApiUrl: string;
+  private readonly crawlerScheduledEnabled: boolean;
+  private isScheduledTaskRunning = false;
+
+  constructor(
+    private dataSource: DataSource,
+    private configService: ConfigService
+  ) {
+    this.bochaApiKey = this.configService.get<string>('BOCHA_API_KEY') || '';
+    this.bochaApiUrl = this.configService.get<string>('BOCHA_API_URL') || 'https://api.bochaai.com/v1/web-search';
+    this.crawlerScheduledEnabled = this.configService.get<boolean>('CRAWLER_SCHEDULED_ENABLED', true);
+  }
+
+  /**
+   * 检查定时任务是否启用
+   */
+  isScheduledTaskEnabled(): boolean {
+    return this.crawlerScheduledEnabled;
+  }
+
+  /**
+   * 设置定时任务启用状态
+   */
+  setScheduledTaskEnabled(enabled: boolean): void {
+    // 注意：这个设置只在内存中，重启后会从配置文件读取
+    // 持久化需要写入数据库或配置文件
+    this.logger.log(`定时任务已${enabled ? '启用' : '禁用'}`);
+  }
+
+  /**
+   * 获取定时任务状态
+   */
+  getScheduledTaskStatus(): { enabled: boolean; isRunning: boolean } {
+    return {
+      enabled: this.crawlerScheduledEnabled,
+      isRunning: this.isScheduledTaskRunning,
+    };
+  }
 
   // 地区坐标
   private readonly regionCoordinates: Record<string, { lat: number; lng: number }> = {
@@ -86,15 +126,29 @@ export class PolicyCrawlerService {
     '如何', '怎么', '什么', '为什么', '攻略',
   ];
 
-  constructor(private dataSource: DataSource) {}
-
   /**
    * 定时任务：每天凌晨 2 点执行
    */
   @Cron('0 2 * * *')
   async handleCron(): Promise<void> {
+    if (!this.crawlerScheduledEnabled) {
+      this.logger.log('定时任务已禁用，跳过执行');
+      return;
+    }
+
+    if (this.isScheduledTaskRunning) {
+      this.logger.warn('定时任务正在运行中，跳过本次执行');
+      return;
+    }
+
+    this.isScheduledTaskRunning = true;
     this.logger.log('开始执行定时政策爬取任务...');
-    await this.fetchPolicies();
+
+    try {
+      await this.fetchPolicies();
+    } finally {
+      this.isScheduledTaskRunning = false;
+    }
   }
 
   /**
@@ -189,60 +243,52 @@ export class PolicyCrawlerService {
   }
 
   /**
-   * 从百度搜索获取政策
+   * 从博查 API 获取搜索结果
    */
   private async searchFromSearchEngine(query: string): Promise<PolicySearchResult[]> {
     const results: PolicySearchResult[] = [];
 
-    // 使用百度搜索
-    const searchUrl = `https://www.baidu.com/s?wd=${encodeURIComponent(query)}&rn=10`;
-
     try {
-      const { data } = await axios.get(searchUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept-Language': 'zh-CN,zh;q=0.9',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        },
-        timeout: 15000,
-      });
-
-      const $ = cheerio.load(data);
-
-      this.logger.log(`百度搜索 HTML 长度：${data.length}`);
       this.logger.log(`搜索关键词：${query}`);
 
-      // 解析百度搜索结果，跳过广告
-      $('#content_left .c-container').each((_, element) => {
-        // 跳过广告
-        if ($(element).hasClass('c-container-ads') || $(element).find('.c-container-label').text().includes('广告')) {
-          return;
-        }
+      const { data } = await axios.post(
+        this.bochaApiUrl,
+        {
+          query: query,
+          count: 10,
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${this.bochaApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 15000,
+        },
+      );
 
-        const title = $(element).find('h3 a, .t a').first().text().trim();
-        const url = $(element).find('h3 a, .t a').first().attr('href') || '';
-        const summary = $(element).find('.c-abstract, .c-span-last').first().text().trim();
-        const source = $(element).find('.c-showurl, .c-color-gray').first().text().trim();
+      this.logger.log(`博查 API 响应状态：${data.code}`);
 
-        this.logger.log(`解析结果：title=${title.substring(0, 20)}, url=${url}`);
+      // 博查 API 响应格式：{ code: 200, data: { webPages: { value: [...] } } }
+      const searchResults = data.data?.webPages?.value || data.data?.value || [];
+      this.logger.log(`博查 API 返回结果数：${searchResults.length}`);
 
-        // 提取地区信息
-        const region = this.extractRegion(title + ' ' + summary);
+      if (Array.isArray(searchResults)) {
+        for (const item of searchResults) {
+          const region = this.extractRegion(item.name + ' ' + (item.snippet || ''));
 
-        if (title && url) {
           results.push({
-            title,
-            url,
-            summary,
-            source,
+            title: item.name || item.title || '',
+            url: item.url || item.link || '',
+            summary: item.snippet || item.summary || '',
+            source: item.siteName || item.site || '',
             region,
           });
         }
-      });
+      }
 
-      this.logger.log(`成功解析 ${results.length} 条结果`);
+      this.logger.log(`成功获取 ${results.length} 条结果`);
     } catch (error) {
-      this.logger.error(`百度搜索解析失败：${error.message}`, error.stack);
+      this.logger.error(`博查 API 请求失败：${error.message}`, error.stack);
     }
 
     return results.slice(0, 10); // 限制每个查询最多 10 条
@@ -273,7 +319,7 @@ export class PolicyCrawlerService {
 
       // 提取发布日期
       const dateMatch = content.match(/(\d{4}[-年]\d{1,2}[-月]\d{1,2}[日号]?)/);
-      const publishedOn = dateMatch ? dateMatch[0].replace(/[年月]/g, '-').replace(/日号/, '') : new Date().toISOString().split('T')[0];
+      const publishedOn = dateMatch ? this.normalizeDate(dateMatch[0]) : new Date().toISOString().split('T')[0];
 
       // 提取政策类型
       const policyType = this.extractPolicyType(content);
@@ -588,7 +634,7 @@ export class PolicyCrawlerService {
       const content = $('article, .content, .article-content, #content').first().html() || searchResult.summary;
       const dateMatch = $('body').text().match(/(\d{4}[-年]\d{1,2}[-月]\d{1,2}[日号]?)/);
       const publishedOn = dateMatch
-        ? dateMatch[0].replace(/[年月]/g, '-').replace(/日号/, '')
+        ? this.normalizeDate(dateMatch[0])
         : new Date().toISOString().split('T')[0];
 
       return {
@@ -722,6 +768,20 @@ export class PolicyCrawlerService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  /**
+   * 标准化日期格式为 YYYY-MM-DD
+   */
+  private normalizeDate(dateStr: string): string {
+    const match = dateStr.match(/(\d{4})[-年](\d{1,2})[-月](\d{1,2})[日号]?/);
+    if (!match) {
+      return new Date().toISOString().split('T')[0];
+    }
+    const year = match[1];
+    const month = match[2].padStart(2, '0');
+    const day = match[3].padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   /**

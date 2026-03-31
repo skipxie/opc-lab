@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { to: "/", label: "首页" },
   { to: "/policy-map", label: "政策列表" },
+  { to: "/articles", label: "文章" },
   { to: "/community", label: "社区加入" },
 ];
 

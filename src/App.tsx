@@ -7,6 +7,7 @@ import PolicyMap from "@/pages/PolicyMap";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Article from "@/pages/Article";
+import Articles from "@/pages/Articles";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminPolicies from "@/pages/admin/Policies";
 import AdminArticles from "@/pages/admin/Articles";
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/policy-map" element={<PolicyMap />} />
           <Route path="/community" element={<Community />} />
+          <Route path="/articles" element={<Articles />} />
           <Route path="/articles/:slug" element={<Article />} />
         </Route>
         <Route path="/login" element={<Login />} />
@@ -36,6 +38,7 @@ export default function App() {
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="policies" element={<AdminPolicies />} />
           <Route path="policies/new" element={<AdminPolicyForm />} />
+          <Route path="policies/:id/edit" element={<AdminPolicyForm />} />
           <Route path="articles" element={<AdminArticles />} />
           <Route path="articles/new" element={<AdminArticleForm />} />
           <Route path="articles/:id/edit" element={<AdminArticleForm />} />

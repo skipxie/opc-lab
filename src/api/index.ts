@@ -259,3 +259,14 @@ export async function triggerPolicyCrawler(keyword?: string) {
     method: 'POST',
   });
 }
+
+export async function getScheduleEnabled() {
+  return request<{ enabled: boolean }>(`/admin/policy-crawler/schedule-enabled`);
+}
+
+export async function toggleSchedule(enabled: boolean) {
+  return request(`/admin/policy-crawler/toggle-schedule`, {
+    method: 'POST',
+    body: JSON.stringify({ enabled }),
+  });
+}

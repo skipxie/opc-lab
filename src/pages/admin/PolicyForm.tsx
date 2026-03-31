@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { fetchPolicy, createPolicy, updatePolicy } from "@/api";
 
 export default function AdminPolicyForm() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const isEditMode = !!id;
+
   const [formData, setFormData] = useState({
     title: "",
     regionName: "",
@@ -22,22 +26,57 @@ export default function AdminPolicyForm() {
   });
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (isEditMode && id) {
+      loadPolicy(id);
+    }
+  }, [id, isEditMode]);
+
+  const loadPolicy = async (policyId: string) => {
+    try {
+      const res = await fetchPolicy(policyId);
+      const data = res.data;
+      setFormData({
+        title: data.title || "",
+        regionName: data.regionName || "",
+        policyType: data.policyType || "",
+        targetAudience: data.targetAudience || "",
+        summary: data.summary || "",
+        requirements: data.requirements || "",
+        materials: data.materials || "",
+        officialUrl: data.officialUrl || "",
+        deadline: data.deadline || "",
+        publishedOn: data.publishedOn?.split("T")[0] || "",
+        sourceName: data.sourceName || "",
+        isFeatured: data.isFeatured || false,
+        tags: Array.isArray(data.tags) ? data.tags.join(", ") : "",
+      });
+    } catch (error) {
+      alert("加载政策失败");
+      navigate("/admin/policies");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // TODO: 调用 API 创建政策
       const data = {
         ...formData,
         tags: formData.tags.split(",").map((t) => t.trim()).filter(Boolean),
       };
 
-      console.log("Creating policy:", data);
-      alert("政策创建成功（演示）");
+      if (isEditMode && id) {
+        await updatePolicy(id, data);
+        alert("政策更新成功");
+      } else {
+        await createPolicy(data);
+        alert("政策创建成功");
+      }
       navigate("/admin/policies");
     } catch (error: any) {
-      alert("创建失败：" + error.message);
+      alert("操作失败：" + error.message);
     } finally {
       setLoading(false);
     }
@@ -46,8 +85,8 @@ export default function AdminPolicyForm() {
   return (
     <div>
       <div className="mb-4">
-        <h1 className="text-2xl font-semibold">添加政策</h1>
-        <p className="mt-1 text-sm text-slate-600">填写政策信息</p>
+        <h1 className="text-2xl font-semibold">{isEditMode ? "编辑政策" : "添加政策"}</h1>
+        <p className="mt-1 text-sm text-slate-600">{isEditMode ? "修改政策信息" : "填写政策信息"}</p>
       </div>
 
       <Card className="p-6">

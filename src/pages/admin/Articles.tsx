@@ -70,6 +70,10 @@ export default function AdminArticles() {
     }
   };
 
+  const handleEdit = (id: number) => {
+    window.location.href = `/admin/articles/${id}/edit`;
+  };
+
   const totalPages = Math.ceil(total / limit);
 
   const statusLabels = {
@@ -170,12 +174,17 @@ export default function AdminArticles() {
                         <Eye className="h-4 w-4" />
                       )}
                     </button>
-                    <button className="text-emerald-600 hover:text-emerald-800">
+                    <button
+                      onClick={() => handleEdit(article.id)}
+                      className="text-emerald-600 hover:text-emerald-800"
+                      title="编辑"
+                    >
                       <Pencil className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(article.id)}
                       className="text-red-600 hover:text-red-800"
+                      title="删除"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

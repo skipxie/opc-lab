@@ -48,6 +48,10 @@ export default function AdminPolicies() {
     }
   };
 
+  const handleEdit = (id: string) => {
+    window.location.href = `/admin/policies/${id}/edit`;
+  };
+
   const totalPages = Math.ceil(total / limit);
 
   return (
@@ -111,12 +115,17 @@ export default function AdminPolicies() {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-2">
-                    <button className="text-blue-600 hover:text-blue-800">
+                    <button
+                      onClick={() => handleEdit(policy.id)}
+                      className="text-blue-600 hover:text-blue-800"
+                      title="编辑"
+                    >
                       <Pencil className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(policy.id)}
                       className="text-red-600 hover:text-red-800"
+                      title="删除"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

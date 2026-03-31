@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { CloudDownload, Search, RefreshCw, CheckCircle, XCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { CloudDownload, Search, Clock, Power, CheckCircle, XCircle } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { usePolicyMapStore } from "@/stores/usePolicyMapStore";
-import { fetchPolicyCrawlerStatus, triggerPolicyCrawler } from "@/api";
+import { fetchPolicyCrawlerStatus, triggerPolicyCrawler, getScheduleEnabled, toggleSchedule } from "@/api";
 
 export default function PolicyCrawler() {
   const { toast } = usePolicyMapStore();
@@ -14,6 +14,34 @@ export default function PolicyCrawler() {
     count?: number;
     message?: string;
   } | null>(null);
+  const [scheduleEnabled, setScheduleEnabled] = useState<boolean>(true);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+
+  useEffect(() => {
+    loadScheduleStatus();
+  }, []);
+
+  const loadScheduleStatus = async () => {
+    try {
+      const data = await getScheduleEnabled();
+      setScheduleEnabled(data.enabled);
+    } catch (error) {
+      console.error("加载定时任务状态失败:", error);
+    }
+  };
+
+  const handleToggleSchedule = async (enabled: boolean) => {
+    setScheduleLoading(true);
+    try {
+      await toggleSchedule(enabled);
+      setScheduleEnabled(enabled);
+      toast(enabled ? "定时任务已启用" : "定时任务已禁用");
+    } catch (error) {
+      toast("操作失败");
+    } finally {
+      setScheduleLoading(false);
+    }
+  };
 
   const handleFetchAll = async () => {
     setLoading(true);
@@ -79,17 +107,43 @@ export default function PolicyCrawler() {
         </Button>
       </div>
 
-      {/* 定时任务说明 */}
-      <Card className="mt-4 p-4 bg-emerald-50 border-emerald-200">
-        <div className="flex items-start gap-3">
-          <RefreshCw className="h-5 w-5 text-emerald-600 mt-0.5" />
-          <div>
-            <div className="text-sm font-semibold text-emerald-900">定时任务已启动</div>
-            <div className="mt-1 text-sm text-emerald-700">
-              系统会在每天凌晨 2:00 自动爬取最新政策，无需手动操作。
-              你也可以使用下方功能手动触发爬取。
+      {/* 定时任务状态和控制 */}
+      <Card className="mt-4 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-start gap-3">
+            <Clock className="h-5 w-5 text-slate-400 mt-0.5" />
+            <div>
+              <div className="text-sm font-semibold text-slate-700">定时任务</div>
+              <div className="mt-1 text-sm text-slate-600">
+                系统会在每天凌晨 2:00 自动爬取最新政策
+              </div>
+              <div className={`mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${
+                scheduleEnabled
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-slate-100 text-slate-600"
+              }`}>
+                {scheduleEnabled ? (
+                  <>
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    已启用
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-3.5 w-3.5" />
+                    已禁用
+                  </>
+                )}
+              </div>
             </div>
           </div>
+          <Button
+            variant={scheduleEnabled ? "secondary" : "primary"}
+            onClick={() => handleToggleSchedule(!scheduleEnabled)}
+            disabled={scheduleLoading}
+          >
+            <Power className="mr-2 h-4 w-4" />
+            {scheduleLoading ? "切换中..." : (scheduleEnabled ? "禁用" : "启用")}
+          </Button>
         </div>
       </Card>
 

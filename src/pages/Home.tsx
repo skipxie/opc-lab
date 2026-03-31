@@ -6,7 +6,7 @@ import Container from "@/components/Container";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { setPageMeta } from "@/utils/meta";
-import { fetchFeaturedPolicies } from "@/api";
+import { fetchFeaturedPolicies, fetchArticles } from "@/api";
 import { formatDateYmd } from "@/utils/date";
 
 interface Policy {
@@ -18,6 +18,14 @@ interface Policy {
   deadline?: string;
 }
 
+interface Article {
+  id: number;
+  title: string;
+  slug: string;
+  summary: string;
+  publishedAt: string;
+}
+
 export default function Home() {
   setPageMeta({
     title: "光未在线 OPC｜AI + 政策列表，让一人公司跑起来",
@@ -25,10 +33,15 @@ export default function Home() {
   });
 
   const [featured, setFeatured] = useState<Policy[]>([]);
+  const [articles, setArticles] = useState<Article[]>([]);
 
   useEffect(() => {
     fetchFeaturedPolicies(6)
       .then((res) => setFeatured(res.data))
+      .catch(console.error);
+
+    fetchArticles(1, 6)
+      .then((res) => setArticles(res.data))
       .catch(console.error);
   }, []);
 
@@ -168,6 +181,45 @@ export default function Home() {
             {featured.length === 0 && (
               <div className="col-span-full py-8 text-center text-sm text-slate-500">
                 暂无推荐政策
+              </div>
+            )}
+          </div>
+        </Container>
+      </div>
+
+      {/* 文章栏目 */}
+      <div className="bg-slate-50">
+        <Container className="py-12">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="text-2xl font-semibold tracking-tight">最新文章</div>
+              <div className="mt-2 text-sm text-slate-600">创业经验、政策解读、实操干货</div>
+            </div>
+            <Button asChild variant="secondary">
+              <Link to="/articles">查看全部</Link>
+            </Button>
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {articles.map((article) => (
+              <Card key={article.id} className="p-5">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold">{article.title}</div>
+                  <div className="mt-2 text-sm leading-relaxed text-slate-600 line-clamp-3">{article.summary}</div>
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="text-xs text-slate-500">
+                      {new Date(article.publishedAt).toLocaleDateString("zh-CN")}
+                    </div>
+                    <Button asChild variant="ghost">
+                      <Link to={`/articles/${article.slug}`}>阅读</Link>
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+            {articles.length === 0 && (
+              <div className="col-span-full py-8 text-center text-sm text-slate-500">
+                暂无文章
               </div>
             )}
           </div>
