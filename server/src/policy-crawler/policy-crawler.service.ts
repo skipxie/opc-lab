@@ -2,10 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { Cron } from '@nestjs/schedule';
-import { DataSource } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Policy } from '../policies/policy.entity';
 import { Article, ArticleTag, ArticleCategory } from '../articles/entities/article.entity';
+import { CrawlerConfig } from './crawler-config.entity';
 
 interface PolicySearchResult {
   title: string;
@@ -44,16 +45,42 @@ export class PolicyCrawlerService {
   private readonly logger = new Logger(PolicyCrawlerService.name);
   private readonly bochaApiKey: string;
   private readonly bochaApiUrl: string;
-  private readonly crawlerScheduledEnabled: boolean;
+  private crawlerScheduledEnabled: boolean;
   private isScheduledTaskRunning = false;
 
   constructor(
     private dataSource: DataSource,
-    private configService: ConfigService
+    private configService: ConfigService,
+    private crawlerConfigRepository: Repository<CrawlerConfig>
   ) {
     this.bochaApiKey = this.configService.get<string>('BOCHA_API_KEY') || '';
     this.bochaApiUrl = this.configService.get<string>('BOCHA_API_URL') || 'https://api.bochaai.com/v1/web-search';
-    this.crawlerScheduledEnabled = this.configService.get<boolean>('CRAWLER_SCHEDULED_ENABLED', true);
+    this.crawlerScheduledEnabled = true; // 默认值，初始化时从数据库加载
+  }
+
+  /**
+   * 初始化配置，从数据库读取定时任务开关状态
+   */
+  async onModuleInit() {
+    try {
+      const config = await this.crawlerConfigRepository.findOne({
+        where: { key: 'schedule_enabled' },
+      });
+      if (config) {
+        this.crawlerScheduledEnabled = config.value === 'true';
+      } else {
+        // 如果数据库没有配置，使用环境变量默认值并保存
+        this.crawlerScheduledEnabled = this.configService.get<boolean>('CRAWLER_SCHEDULED_ENABLED', true);
+        await this.crawlerConfigRepository.save({
+          key: 'schedule_enabled',
+          value: this.crawlerScheduledEnabled ? 'true' : 'false',
+          description: '爬虫定时任务是否启用 (true/false)',
+        });
+      }
+      this.logger.log(`爬虫定时任务初始化状态：${this.crawlerScheduledEnabled ? '启用' : '禁用'}`);
+    } catch (error) {
+      this.logger.error('加载爬虫配置失败:', error);
+    }
   }
 
   /**
@@ -64,12 +91,21 @@ export class PolicyCrawlerService {
   }
 
   /**
-   * 设置定时任务启用状态
+   * 设置定时任务启用状态（保存到数据库）
    */
-  setScheduledTaskEnabled(enabled: boolean): void {
-    // 注意：这个设置只在内存中，重启后会从配置文件读取
-    // 持久化需要写入数据库或配置文件
+  async setScheduledTaskEnabled(enabled: boolean): Promise<void> {
+    this.crawlerScheduledEnabled = enabled;
     this.logger.log(`定时任务已${enabled ? '启用' : '禁用'}`);
+
+    // 保存到数据库
+    await this.crawlerConfigRepository.upsert(
+      {
+        key: 'schedule_enabled',
+        value: enabled ? 'true' : 'false',
+        description: '爬虫定时任务是否启用 (true/false)',
+      },
+      ['key'],
+    );
   }
 
   /**
@@ -157,37 +193,8 @@ export class PolicyCrawlerService {
   async fetchPolicies(): Promise<number> {
     const searchQueries = [
       // 核心品牌SEO
-      "OPC一人公司社区",
-      "一人有限责任公司创业社群",
-      "超级个体OPC创业者圈子",
-      "AI单人创业OPC交流平台",
-      // 公域流量引流
-      "一人公司创业交流",
-      "OPC创业者聚集地",
-      "单人创业经验分享",
-      "超级个体创业社群",
-      // 用户痛点合规
-      "OPC一人公司合规避坑",
-      "一人公司财税合规交流",
-      "OPC财产混同风险防控",
-      "单人创业资源对接",
-      // 实操干货专栏
-      "OPC注册流程交流",
-      "一人公司记账报税经验",
-      "OPC补贴申请经验分享",
-      "单人公司运营管理技巧",
-      // AI+OPC差异化
+      "OPC一人公司",
       "AI一人公司创业模式",
-      "OPC人工智能工具应用",
-      "单人成军AI创业交流",
-      "AI赋能OPC效率提升",
-      // 同城社群圈子
-      "深圳OPC创业者社群",
-      "上海一人公司创业圈子",
-      "北京超级个体交流群",
-      "杭州AI单人创业社区",
-      // 社区话题互动
-      "OPC创业日记",
       "一人公司日常运营",
       "超级个体成长之路",
       "OPC资源合作对接"
